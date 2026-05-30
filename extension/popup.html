@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MoodSentinel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 320px;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f13;
+      color: #f0f0f0;
+    }
+    .header {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      padding: 16px 20px;
+      border-bottom: 1px solid #2a2a3e;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #4f8ef7, #a855f7);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .header-text h1 { font-size: 14px; font-weight: 700; color: #fff; }
+    .header-text p { font-size: 10px; color: #6b7280; margin-top: 1px; }
+
+    .status-card {
+      margin: 16px;
+      background: #1a1a2e;
+      border: 1px solid #2a2a3e;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .status-row { display: flex; align-items: center; justify-content: space-between; }
+    .status-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; }
+    .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7280; }
+    .dot.idle { background: #4ade80; box-shadow: 0 0 6px #4ade8088; }
+    .dot.processing { background: #4f8ef7; box-shadow: 0 0 6px #4f8ef788; animation: pulse 1s infinite; }
+    .dot.error { background: #f87171; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .job-info {
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid #2a2a3e;
+      font-size: 11px; color: #9ca3af;
+    }
+    .job-url { font-size: 10px; color: #4f8ef7; word-break: break-all; margin-top: 4px; }
+
+    .section { margin: 0 16px 16px; }
+    .section-title { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+    .input-row { display: flex; gap: 8px; }
+
+    input {
+      flex: 1;
+      background: #1a1a2e; border: 1px solid #2a2a3e;
+      border-radius: 8px; padding: 8px 12px;
+      font-size: 11px; color: #f0f0f0; outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: #4f8ef7; }
+    input::placeholder { color: #4b5563; }
+
+    button {
+      background: linear-gradient(135deg, #4f8ef7, #a855f7);
+      border: none; border-radius: 8px;
+      padding: 8px 14px; font-size: 11px; font-weight: 600;
+      color: #fff; cursor: pointer; transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    button:hover { opacity: 0.85; }
+
+    .log-box {
+      background: #0a0a0f; border: 1px solid #2a2a3e;
+      border-radius: 8px; padding: 10px 12px;
+      height: 90px; overflow-y: auto;
+      font-size: 10px; font-family: 'Courier New', monospace;
+      color: #6b7280; line-height: 1.6;
+    }
+    .log-entry { color: #9ca3af; }
+    .log-entry.success { color: #4ade80; }
+    .log-entry.error { color: #f87171; }
+    .log-entry.info { color: #4f8ef7; }
+
+    .footer {
+      padding: 10px 16px;
+      border-top: 1px solid #1a1a2e;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .footer-text { font-size: 9px; color: #374151; }
+    .polling-badge {
+      font-size: 9px; color: #4ade80;
+      background: #4ade8011; border: 1px solid #4ade8033;
+      border-radius: 4px; padding: 2px 6px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">🧠</div>
+  <div class="header-text">
+    <h1>MoodSentinel</h1>
+    <p>Comment Analyzer Extension</p>
+  </div>
+</div>
+
+<div class="status-card">
+  <div class="status-row">
+    <span class="status-label">Status</span>
+    <div class="status-indicator">
+      <div class="dot idle" id="statusDot"></div>
+      <span id="statusText">Idle — waiting for jobs</span>
+    </div>
+  </div>
+  <div class="job-info" id="jobInfo" style="display:none">
+    <div>Scraping post...</div>
+    <div class="job-url" id="jobUrl"></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Backend URL (ngrok or localhost)</div>
+  <div class="input-row">
+    <input type="text" id="apiBaseInput" placeholder="https://xxxx.ngrok-free.app" />
+    <button id="saveBtn">Save</button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Activity Log</div>
+  <div class="log-box" id="logBox">
+    <div class="log-entry info">Extension ready. Waiting for mobile app to send a post URL...</div>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="footer-text">MoodSentinel v1.0 — Thesis Project</span>
+  <span class="polling-badge" id="pollingBadge">● Polling</span>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "MoodSentinel Analyzer",
+  "version": "1.0.0",
+  "description": "Analyzes Facebook post comments for MoodSentinel. Polls for pending URLs from mobile app and scrapes comments automatically.",
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "scripting",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://www.facebook.com/*",
+    "https://m.facebook.com/*",
+    "http://localhost:8000/*",
+    "https://*.ngrok-free.app/*",
+    "https://*.exp.direct/*",
+    "https://*.ngrok.io/*",
+    "https://*.ngrok-free.app/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.jpg",
+      "48": "icon48.jpg",
+      "128": "icon128.jpg"
+    }
+  }
+}
