@@ -1,0 +1,85 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+fb_cookies.json
+fb_cookies.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Tooling and local editor state
+.vscode/
+.idea/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.orig
+* copy.*
+
+# Node / extension experiments
+node_modules/
+backgroundworking*.js
+
+# Local audit/cleanup reports
+project_audit.md
+dependency_map.md
+cleanup_report.md
+.github_project_review.md
+backup_cleaning_report.md
+Codebase_Cleanup_Report*.md
+
+# Large ML artifacts and generated outputs
+models/
+checkpoints/
+*.safetensors
+*.pt
+*.pth
+*.bin
+tokenizer.json
+tokenizer_config.json
+config.json
+training_args.bin
+checkpoints.json
+
+# Datasets, evaluation output, and scraper/debug captures
+data/
+figures/
+eval_results/
+evaluation_results/
+debug_page.html
+*.result.json
+
+# Offline research, training, evaluation, and legacy scripts
+balance_dataset.py
+compare_emotion_models.py
+debug_scraper.py
+emotion_service_orig.py
+ensemble_inference.py
+evaluate_finetuned_emotion.py
+evaluate_pipeline.py
+inject_emotion_data.py
+refresh_cookies.py
+scraper.py
+scraper2.py
+scraper3.py
+scraperworking_orig.py
+streamlit_ui.py
+test_models.py
+test_sentence.py
+train_absa.py
+translate_val.py
+src/
+tests/
