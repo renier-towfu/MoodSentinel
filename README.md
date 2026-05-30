@@ -1,85 +1,145 @@
-# MoodSentinel Backend
+# MoodSentinel
 
-## Overview
+> Sentiment and emotion analysis for Facebook comments — powered by mBERT and ABSA.
 
-MoodSentinel Backend is a FastAPI service for analyzing Facebook comments across English, Tagalog, and Taglish. It receives scraped comments from the separate MoodSentinel browser extension, processes them through the NLP pipeline, and returns sentiment, emotion, language, and aspect-level analysis.
+MoodSentinel is a monorepo containing three components that work together:
 
-The frontend is maintained separately at `C:\MS\MoodSentinel`. The browser extension is also maintained outside this backend repository.
+- **backend** — FastAPI Python service that runs the NLP analysis pipeline
+- **frontend** — Expo React Native mobile app for submitting jobs and viewing results
+- **extension** — Chrome extension that scrapes Facebook comments and bridges them to the backend
 
-## Features
+---
 
-- FastAPI REST API with health, batch analysis, queued analysis, and result polling.
-- Browser-extension bridge for receiving scraped Facebook comments.
-- English, Tagalog, and Taglish language detection.
-- Optional Tagalog/Taglish translation before ABSA.
-- Aspect-based sentiment analysis with fallback behavior.
-- Emotion classification with sentiment-aware filtering.
-- In-memory job queue and result store.
-- Dockerfile for backend deployment.
+## Repository Structure
 
-## Technologies Used
-
-- Python 3.10+
-- FastAPI and Uvicorn
-- Pydantic
-- PyTorch
-- Transformers
-- PyABSA
-- langdetect
-- deep-translator
-- Docker
-
-## Architecture
-
-```text
-Frontend/mobile app
--> POST /api/analyze
--> backend creates job
--> browser extension polls /api/extension/pending
--> extension scrapes Facebook comments
--> extension submits comments to /api/extension/submit
--> services.pipeline processes comments
--> frontend polls status/result endpoints
+```
+MoodSentinel/
+├── backend/                  Python FastAPI backend
+│   ├── services/             Language detection, translation, ABSA, emotion, pipeline
+│   ├── server.py             Main FastAPI application and job queue
+│   ├── extension_router.py   Chrome extension bridge endpoints
+│   ├── requirements.txt      Python dependencies
+│   ├── Dockerfile            Container build
+│   ├── .dockerignore
+│   └── .env.example
+│
+├── frontend/                 Expo React Native mobile app
+│   ├── app/                  Expo Router route files
+│   ├── assets/               App icons and images
+│   ├── src/
+│   │   ├── components/       Reusable UI components
+│   │   ├── constants/        Theme constants and API URL config
+│   │   ├── hooks/            Analysis hooks
+│   │   ├── screens/          Browser and dashboard screens
+│   │   ├── services/         Backend API client
+│   │   └── utils/            Helper utilities
+│   ├── app.json
+│   ├── eas.json
+│   ├── package.json
+│   └── tsconfig.json
+│
+└── extension/                Chrome extension (scraper bridge)
+    ├── background.js         Service worker — polls backend and scrapes Facebook
+    ├── popup.html            Extension popup UI
+    ├── popup.js              Popup logic
+    ├── manifest.json         Chrome extension manifest
+    ├── icon16.jpg
+    ├── icon48.jpg
+    └── icon128.jpg
 ```
 
-Pipeline:
+---
 
-```text
-comment
--> clean text
--> detect language
--> translate if needed
--> extract aspects and sentiment
--> classify emotion
--> aggregate distributions and breakdown
+## How It Works
+
+```
+Mobile app (frontend)
+  -> POST /api/analyze        Submit a Facebook post URL
+  -> backend creates a job
+  -> Chrome extension polls   GET /api/extension/pending
+  -> extension scrapes        Facebook comments from the live DOM
+  -> extension submits        POST /api/extension/submit
+  -> backend pipeline runs    Language detect -> translate -> ABSA -> emotion
+  -> mobile app polls         GET /api/analyze/status/{job_id}
+  -> mobile app fetches       GET /api/analyze/result/{job_id}
 ```
 
-## Installation
+---
 
-Create and activate a virtual environment:
+## Quick Start
+
+### Backend
 
 ```bash
+cd backend
+cp .env.example .env
 python -m venv .venv
-.venv\Scripts\activate
-```
-
-Install dependencies:
-
-```bash
+.venv\Scripts\activate        # Windows
 pip install -r requirements.txt
+uvicorn server:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-The public backend upload intentionally excludes local model artifacts, checkpoints, datasets, evaluation outputs, figures, Facebook cookies, the frontend, and the browser extension package.
+API docs available at `http://localhost:8000/docs`
 
-## Configuration
-
-Copy the example environment file:
+### Frontend
 
 ```bash
-copy .env.example .env
+cd frontend
+cp .env.example .env
+# Set EXPO_PUBLIC_API_BASE_URL=http://localhost:8000 (or your ngrok URL)
+npm install
+npx expo start
 ```
 
-Common settings:
+### Chrome Extension
+
+1. Open Chrome and go to `chrome://extensions`
+2. Enable **Developer mode**
+3. Click **Load unpacked**
+4. Select the `extension/` folder from this repo
+
+### Backend via Docker
+
+```bash
+cd backend
+docker build -t moodsentinel-backend .
+docker run -p 8000:8000 --env-file .env moodsentinel-backend
+```
+
+---
+
+## Backend API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Service health and status |
+| GET | `/api/ngrok-url` | Auto-detect active ngrok tunnel |
+| POST | `/api/analyze` | Submit a Facebook post for analysis |
+| GET | `/api/analyze/status/{job_id}` | Poll job progress |
+| GET | `/api/analyze/result/{job_id}` | Fetch completed result |
+| POST | `/api/analyze/batch` | Analyze raw comments directly |
+| GET | `/api/extension/pending` | Extension polls for next job |
+| POST | `/api/extension/submit` | Extension submits scraped comments |
+| POST | `/api/extension/fail` | Extension reports scraping failure |
+| GET | `/api/extension/status` | Extension health check |
+| GET | `/api/extension/status/{job_id}` | Per-job extension status |
+
+---
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Backend | Python 3.10+, FastAPI, Uvicorn, PyTorch, Transformers, PyABSA |
+| Frontend | Expo, React Native, Expo Router, TypeScript |
+| Extension | Chrome Extension (Manifest V3), JavaScript |
+| Deployment | Docker, ngrok |
+
+---
+
+## Environment Variables
+
+### Backend (`backend/.env`)
 
 ```env
 PORT=8000
@@ -88,100 +148,19 @@ MOODSENTINEL_MIN_COMMENTS=3
 MOODSENTINEL_USE_EXTENSION=true
 MOODSENTINEL_EXTENSION_TIMEOUT=900
 MOODSENTINEL_INFERENCE_MODE=absa
-MOODSENTINEL_ABSA_CHECKPOINT=multilingual
 ```
 
-Do not commit `.env`, Facebook cookies, credentials, datasets with private data, model checkpoints, or local virtual environments.
+### Frontend (`frontend/.env`)
 
-## Usage
-
-Run the API:
-
-```bash
-uvicorn server:app --host 0.0.0.0 --port 8000 --reload
+```env
+EXPO_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
-Open API docs:
+---
 
-```text
-http://localhost:8000/docs
-```
+## Notes
 
-Health check:
-
-```bash
-curl http://localhost:8000/api/health
-```
-
-Batch analysis:
-
-```bash
-curl -X POST http://localhost:8000/api/analyze/batch ^
-  -H "Content-Type: application/json" ^
-  -d "{\"comments\":[\"Ang ganda nito!\", \"The delivery was slow.\"]}"
-```
-
-## Folder Structure
-
-```text
-services/              Runtime language, translation, ABSA, emotion, and pipeline code
-server.py              FastAPI application
-extension_router.py    Browser extension bridge
-requirements.txt       Python dependencies
-Dockerfile             Container build
-.dockerignore          Keeps local artifacts out of Docker images
-.gitignore             Keeps local artifacts out of Git
-```
-
-Local-only folders such as `models/`, `checkpoints/`, `data/`, `figures/`, `eval_results/`, and `evaluation_results/` are ignored and should not be uploaded to GitHub.
-
-## Screenshots
-
-Placeholders:
-
-- API documentation screenshot
-- Frontend dashboard screenshot
-- Browser extension screenshot
-- Analysis result screenshot
-
-## API Documentation
-
-Core endpoints:
-
-- `GET /api/health`
-- `GET /api/ngrok-url`
-- `POST /api/analyze`
-- `GET /api/analyze/status/{job_id}`
-- `GET /api/analyze/result/{job_id}`
-- `POST /api/analyze/batch`
-- `GET /api/extension/pending`
-- `POST /api/extension/submit`
-- `POST /api/extension/fail`
-- `GET /api/extension/status`
-- `GET /api/extension/status/{job_id}`
-
-Interactive OpenAPI docs are available at `/docs` when the server is running.
-
-## Database Setup
-
-No database is currently required. Jobs and results are stored in memory and are cleared on process restart. For production use, replace the in-memory job store with Redis, PostgreSQL, or another persistent queue/result backend.
-
-## Troubleshooting
-
-- If `/api/health` reports `pipeline_ready=false`, check missing dependencies and model availability.
-- If extension jobs time out, confirm the browser is running, the extension is installed, and `MOODSENTINEL_EXTENSION_TIMEOUT` is high enough.
-- If ngrok auto-detection fails, verify ngrok is running locally and its API is available at `http://127.0.0.1:4040/api/tunnels`.
-- If Docker builds are slow or huge, confirm `.dockerignore` is present and model/checkpoint folders are not copied into the image.
-
-## Future Improvements
-
-- Add persistent job storage.
-- Add automated tests for API and pipeline behavior.
-- Document the separate frontend and browser extension repositories/folders.
-- Externalize model artifacts with checksums and download scripts.
-- Normalize text encoding across source files.
-- Add CI for linting, tests, and Docker build validation.
-
-## License
-
-No license file is currently present. Add a `LICENSE` file before publishing publicly.
+- Jobs and results are stored in memory and cleared on process restart. For production, replace with Redis or a database.
+- On a physical phone, replace `localhost` with your computer LAN IP or ngrok public URL.
+- Model checkpoints, datasets, and local build artifacts are excluded from this repo via `.gitignore`.
+- No license file is currently present. Add a `LICENSE` before publishing publicly.
